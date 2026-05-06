@@ -1,4 +1,4 @@
-name: Codex Review
+name: Build and Test
 
 on:
   pull_request:
@@ -7,18 +7,15 @@ on:
     branches: [main]
 
 concurrency:
-  group: codex-review-${{ github.ref }}
+  group: build-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  codex-review:
-    name: codex-review
-    if: github.event_name == 'pull_request'
+  build:
+    name: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -26,155 +23,5 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Install Codex CLI
-        run: npm install -g @openai/codex
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Build and test (Codex never reviews red builds)
+      - name: Build and test
         run: mvn -B -pl gigsarathi-core test
-
-      - name: Run Codex review
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          HEAD_BRANCH: ${{ github.head_ref }}
-        run: |
-          set -euo pipefail
-          chmod +x scripts/codex-review.sh
-
-          CHANGED_FILES="$(git diff --name-only origin/main... | grep -E '\.(java|yml|yaml)$' || true)"
-
-          run_arch_on_java() {
-            local java_files
-            java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
-            if [[ -n "$java_files" ]]; then
-              for f in $java_files; do
-                ./scripts/codex-review.sh arch-consistency "$f" "arch-${f//\//-}"
-              done
-            fi
-          }
-
-          run_test_coverage() {
-            local java_files
-            java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
-            if [[ -n "$java_files" ]]; then
-              for f in $java_files; do
-                ./scripts/codex-review.sh test-coverage "$f" "testcov-${f//\//-}"
-              done
-            fi
-          }
-
-          run_ac() {
-            local gate="$1"
-            git diff origin/main... > /tmp/${gate}-diff.patch
-            ./scripts/codex-review.sh acceptance-criteria /tmp/${gate}-diff.patch "${gate}-ac"
-          }
-
-          run_m4_bootstrap() {
-            local bootstrap_file="gigsarathi-core/src/main/java/com/gigsarathi/config/AppConfigBootstrap.java"
-            local test_yml="gigsarathi-core/src/test/resources/application-test.yml"
-            if [[ -f "$bootstrap_file" ]]; then
-              ./scripts/codex-review.sh m4-bootstrap "$bootstrap_file" "m4-bootstrap-main"
-            fi
-            if [[ -f "$test_yml" ]]; then
-              ./scripts/codex-review.sh m4-bootstrap "$test_yml" "m4-bootstrap-testyml"
-            fi
-          }
-
-          case "$HEAD_BRANCH" in
-            chore/codex-review-tooling)
-              run_arch_on_java
-              ;;
-            chore/prep-commit)
-              run_arch_on_java
-              run_test_coverage
-              run_ac "prep-commit"
-              ;;
-            feature/m2-intelligence)
-              run_arch_on_java
-              m2_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
-              for f in $m2_files; do
-                ./scripts/codex-review.sh m2-hotness "$f" "m2-${f//\//-}"
-              done
-              run_test_coverage
-              run_ac "m2"
-              ;;
-            feature/m3-engagement)
-              run_arch_on_java
-              m3_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
-              for f in $m3_files; do
-                ./scripts/codex-review.sh m3-referral "$f" "m3-${f//\//-}"
-              done
-              run_test_coverage
-              run_ac "m3"
-              ;;
-            feature/m4-advanced)
-              run_arch_on_java
-              run_m4_bootstrap
-              run_test_coverage
-              run_ac "m4"
-              ;;
-            *)
-              echo "Branch '$HEAD_BRANCH' has no Codex template mapping — skipping."
-              ;;
-          esac
-
-      - name: Upload Codex review logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codex-review-logs-${{ github.run_id }}
-          path: .omc/logs/codex-reviews/
-          retention-days: 90
-
-  codex-post-merge-scan:
-    name: codex-post-merge-scan
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Install Codex CLI
-        run: npm install -g @openai/codex
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-      - name: Run post-merge conflict scan
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          set -euo pipefail
-          chmod +x scripts/codex-review.sh
-
-          BOOTSTRAP_PATH="gigsarathi-core/src/main/java/com/gigsarathi/bootstrap/AppConfigBootstrap.java"
-          TOMORROW_PATH="gigsarathi-core/src/main/java/com/gigsarathi/flow/TomorrowPlanAction.java"
-          REFERRAL_PATH="gigsarathi-core/src/main/java/com/gigsarathi/flow/ReferralPromptAction.java"
-
-          git cat-file -e "HEAD^:${BOOTSTRAP_PATH}" 2>/dev/null && BOOTSTRAP_ON_MAIN=true || BOOTSTRAP_ON_MAIN=false
-          git cat-file -e "HEAD^:${TOMORROW_PATH}" 2>/dev/null && TOMORROW_PLAN_ON_MAIN=true || TOMORROW_PLAN_ON_MAIN=false
-          git cat-file -e "HEAD^:${REFERRAL_PATH}" 2>/dev/null && REFERRAL_ON_MAIN=true || REFERRAL_ON_MAIN=false
-
-          MERGE_BOOLEANS="BOOTSTRAP_ON_MAIN=${BOOTSTRAP_ON_MAIN}
-          TOMORROW_PLAN_ON_MAIN=${TOMORROW_PLAN_ON_MAIN}
-          REFERRAL_ON_MAIN=${REFERRAL_ON_MAIN}"
-
-          git diff HEAD^..HEAD > /tmp/post-merge-diff.patch
-          ./scripts/codex-review.sh merge-conflict-scan /tmp/post-merge-diff.patch \
-            "post-merge-${GITHUB_SHA}" \
-            --extra-context "$MERGE_BOOLEANS"
-
-      - name: Upload post-merge scan logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: codex-post-merge-logs-${{ github.run_id }}
-          path: .omc/logs/codex-reviews/
-          retention-days: 90

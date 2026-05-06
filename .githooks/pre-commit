@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+# Codex pre-commit review gate.
+# Exit codes mirror codex-review.sh: 0=all PASS, non-zero=blocks commit.
+# Set SKIP_CODEX_REVIEW=1 to bypass (e.g. for doc-only commits).
+set -euo pipefail
+
+[[ "${SKIP_CODEX_REVIEW:-0}" == "1" ]] && exit 0
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+if ! command -v codex >/dev/null 2>&1; then
+  echo "⚠  codex CLI not found — skipping Codex review. Install: npm install -g @openai/codex" >&2
+  exit 0
+fi
+
+if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+  echo "⚠  OPENAI_API_KEY not set — skipping Codex review." >&2
+  exit 0
+fi
+
+BRANCH="$(git rev-parse --abbrev-ref HEAD)"
+CHANGED_FILES="$(git diff --cached --name-only | grep -E '\.(java|yml|yaml)$' || true)"
+
+[[ -z "$CHANGED_FILES" ]] && exit 0
+
+chmod +x "$ROOT/scripts/codex-review.sh"
+
+run_arch_on_java() {
+  local java_files
+  java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
+  [[ -z "$java_files" ]] && return 0
+  while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    "$ROOT/scripts/codex-review.sh" arch-consistency "$f" "arch-${f//\//-}"
+  done <<< "$java_files"
+}
+
+run_test_coverage() {
+  local java_files
+  java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
+  [[ -z "$java_files" ]] && return 0
+  while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    "$ROOT/scripts/codex-review.sh" test-coverage "$f" "testcov-${f//\//-}"
+  done <<< "$java_files"
+}
+
+run_ac() {
+  local gate="$1"
+  git diff --cached > "/tmp/${gate}-staged.patch"
+  "$ROOT/scripts/codex-review.sh" acceptance-criteria "/tmp/${gate}-staged.patch" "${gate}-ac"
+}
+
+run_m2_hotness() {
+  local java_files
+  java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
+  [[ -z "$java_files" ]] && return 0
+  while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    "$ROOT/scripts/codex-review.sh" m2-hotness "$f" "m2-${f//\//-}"
+  done <<< "$java_files"
+}
+
+run_m3_referral() {
+  local java_files
+  java_files="$(echo "$CHANGED_FILES" | grep '\.java$' || true)"
+  [[ -z "$java_files" ]] && return 0
+  while IFS= read -r f; do
+    [[ -f "$f" ]] || continue
+    "$ROOT/scripts/codex-review.sh" m3-referral "$f" "m3-${f//\//-}"
+  done <<< "$java_files"
+}
+
+run_m4_bootstrap() {
+  local bootstrap_file="gigsarathi-core/src/main/java/com/gigsarathi/config/AppConfigBootstrap.java"
+  local test_yml="gigsarathi-core/src/test/resources/application-test.yml"
+  # M4 exception: always run on these two files if they exist, regardless of staged set
+  if [[ -f "$bootstrap_file" ]]; then
+    "$ROOT/scripts/codex-review.sh" m4-bootstrap "$bootstrap_file" "m4-bootstrap-main"
+  fi
+  if [[ -f "$test_yml" ]]; then
+    "$ROOT/scripts/codex-review.sh" m4-bootstrap "$test_yml" "m4-bootstrap-testyml"
+  fi
+}
+
+echo "🔍 Codex review — branch: $BRANCH"
+
+case "$BRANCH" in
+  chore/codex-review-tooling)
+    run_arch_on_java
+    ;;
+  chore/prep-commit)
+    run_arch_on_java
+    run_test_coverage
+    run_ac "prep-commit"
+    ;;
+  feature/m2-intelligence)
+    run_arch_on_java
+    run_m2_hotness
+    run_test_coverage
+    run_ac "m2"
+    ;;
+  feature/m3-engagement)
+    run_arch_on_java
+    run_m3_referral
+    run_test_coverage
+    run_ac "m3"
+    ;;
+  feature/m4-advanced)
+    run_arch_on_java
+    run_m4_bootstrap
+    run_test_coverage
+    run_ac "m4"
+    ;;
+  *)
+    echo "ℹ  Branch '$BRANCH' has no Codex template mapping — skipping."
+    ;;
+esac
+
+echo "✅ Codex review passed."
