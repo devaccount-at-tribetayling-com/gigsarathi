@@ -52,7 +52,7 @@ public class LoanFlowAction implements PostDailySummaryAction {
 
             if (!eligibilityService.isEligible(userId, platform)) return Optional.empty();
 
-            String dedupKey = LOAN_OFFERED_KEY_PREFIX + platform + ":" + userId;
+            String dedupKey = LOAN_OFFERED_KEY_PREFIX + userId;
             if (Boolean.TRUE.equals(redisTemplate.hasKey(dedupKey))) return Optional.empty();
 
             redisTemplate.opsForValue().set(dedupKey, "1", DEDUP_TTL);

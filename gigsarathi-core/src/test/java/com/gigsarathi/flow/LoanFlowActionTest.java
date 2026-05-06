@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 
+import java.time.Duration;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,7 +77,7 @@ class LoanFlowActionTest {
     void apply_alreadyOffered_returnsEmpty() {
         when(appConfigRepository.findById(AppConfigBootstrap.CONFIG_ID)).thenReturn(Optional.of(loanEnabledConfig()));
         when(eligibilityService.isEligible("user1", "whatsapp")).thenReturn(true);
-        when(redisTemplate.hasKey(LoanFlowAction.LOAN_OFFERED_KEY_PREFIX + "whatsapp:user1")).thenReturn(true);
+        when(redisTemplate.hasKey(LoanFlowAction.LOAN_OFFERED_KEY_PREFIX + "user1")).thenReturn(true);
 
         Optional<SessionState> result = action.apply("user1", "whatsapp", null);
 
@@ -89,7 +90,7 @@ class LoanFlowActionTest {
     void apply_eligible_sendsMessageAndReturnsLoanSession() {
         when(appConfigRepository.findById(AppConfigBootstrap.CONFIG_ID)).thenReturn(Optional.of(loanEnabledConfig()));
         when(eligibilityService.isEligible("user1", "whatsapp")).thenReturn(true);
-        when(redisTemplate.hasKey(LoanFlowAction.LOAN_OFFERED_KEY_PREFIX + "whatsapp:user1")).thenReturn(false);
+        when(redisTemplate.hasKey(LoanFlowAction.LOAN_OFFERED_KEY_PREFIX + "user1")).thenReturn(false);
 
         Optional<SessionState> result = action.apply("user1", "whatsapp", null);
 
@@ -99,6 +100,7 @@ class LoanFlowActionTest {
         assertThat(result.get().getStepIndex()).isZero();
         verify(messageSender).sendMessage(eq("user1"), eq("whatsapp"), anyString());
         verify(eventService).emit(eq("loan_offer_shown"), eq("user1"), eq("whatsapp"), any());
+        verify(valueOps).set(eq(LoanFlowAction.LOAN_OFFERED_KEY_PREFIX + "user1"), eq("1"), eq(Duration.ofDays(30)));
     }
 
     @Test

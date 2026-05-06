@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Slf4j
 @Component
-@ConditionalOnProperty(name = "app.bootstrap.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name="app.bootstrap.enabled", havingValue="true", matchIfMissing=true)
 public class AppConfigBootstrap {
 
     public static final String CONFIG_ID = "singleton";
