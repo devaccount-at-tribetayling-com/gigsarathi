@@ -37,19 +37,22 @@ public class DailyEarningsFlow {
     private final ZoneHeuristicRepository zoneRepository;
     private final EventService eventService;
     private final MessageSenderRouter messageSender;
+    private final List<PostDailySummaryAction> actions;
 
     public DailyEarningsFlow(SessionService sessionService,
                              EarningsRepository earningsRepository,
                              UserRepository userRepository,
                              ZoneHeuristicRepository zoneRepository,
                              EventService eventService,
-                             MessageSenderRouter messageSender) {
+                             MessageSenderRouter messageSender,
+                             List<PostDailySummaryAction> actions) {
         this.sessionService = sessionService;
         this.earningsRepository = earningsRepository;
         this.userRepository = userRepository;
         this.zoneRepository = zoneRepository;
         this.eventService = eventService;
         this.messageSender = messageSender;
+        this.actions = actions;
     }
 
     /**
@@ -240,9 +243,23 @@ public class DailyEarningsFlow {
             }
         }
 
-        eventService.emit("daily_summary_viewed", userId, platform, Map.of());
-        sessionService.clearSession(platform, userId);
         messageSender.sendMessage(userId, platform, sb.toString());
+        eventService.emit("daily_summary_viewed", userId, platform, Map.of());
+
+        SessionState chained = null;
+        for (PostDailySummaryAction action : actions) {
+            Optional<SessionState> result = action.apply(userId, platform, record);
+            if (result.isPresent()) {
+                chained = result.get();
+                break;
+            }
+        }
+
+        if (chained != null) {
+            sessionService.saveSession(platform, userId, chained);
+        } else {
+            sessionService.clearSession(platform, userId);
+        }
     }
 
     // ----- midpoint helpers -----

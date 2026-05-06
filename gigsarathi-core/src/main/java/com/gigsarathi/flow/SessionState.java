@@ -1,5 +1,6 @@
 package com.gigsarathi.flow;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +13,7 @@ import java.util.Map;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SessionState {
 
     private String flowType;
@@ -19,4 +21,5 @@ public class SessionState {
     @Builder.Default
     private Map<String, Object> pendingData = new HashMap<>();
     private String startedAt;
+    private String previousFlow; // nullable; null for ONBOARDING, DAILY_EARNINGS
 }

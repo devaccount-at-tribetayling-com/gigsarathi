@@ -3,8 +3,9 @@
 > ⚠️ **SUPERSESSION NOTICE — M2/M3/M4 Parallel Scope**
 > The parallel execution plan for milestones M2, M3, and M4 is authoritative for those milestones.
 > Specifically: **M2 deliverable #5 (`PATCH /admin/features`) is NOT M2 scope — it belongs to M4.**
-> See `.omc/plans/gigsarathi-m234-parallel-plan-v4.md` for authoritative M2/M3/M4 scope,
-> acceptance criteria, dependency surfaces, and merge order.
+> See `.omc/plans/gigsarathi-m234-execution-plan-codex.md` (v6, consensus-approved) for authoritative
+> M2/M3/M4 scope, acceptance criteria, dependency surfaces, shared infrastructure, and merge order.
+> The `chore/prep-commit` branch (Steps 0a–0d) must merge to `main` before any M2/M3/M4 branch is cut.
 > M1 scope in this document is unaffected.
 
 ## Architect Review Summary
