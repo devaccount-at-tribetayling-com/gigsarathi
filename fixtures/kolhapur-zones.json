@@ -1,0 +1,83 @@
+[
+  {
+    "city": "Kolhapur",
+    "zone": "Tarabai Park",
+    "timeSlot": "evening",
+    "baseDemandScore": 8.5,
+    "estimatedSupply": 12,
+    "recommendationPriority": 1,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Rankala",
+    "timeSlot": "evening",
+    "baseDemandScore": 8.2,
+    "estimatedSupply": 10,
+    "recommendationPriority": 2,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Mahadwar Road",
+    "timeSlot": "morning",
+    "baseDemandScore": 7.9,
+    "estimatedSupply": 8,
+    "recommendationPriority": 3,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Shahupuri",
+    "timeSlot": "afternoon",
+    "baseDemandScore": 7.6,
+    "estimatedSupply": 15,
+    "recommendationPriority": 4,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Rajarampuri",
+    "timeSlot": "evening",
+    "baseDemandScore": 7.4,
+    "estimatedSupply": 9,
+    "recommendationPriority": 5,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Laxmipuri",
+    "timeSlot": "morning",
+    "baseDemandScore": 7.1,
+    "estimatedSupply": 7,
+    "recommendationPriority": 6,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Kasba Bawada",
+    "timeSlot": "afternoon",
+    "baseDemandScore": 6.8,
+    "estimatedSupply": 11,
+    "recommendationPriority": 7,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Station Road",
+    "timeSlot": "morning",
+    "baseDemandScore": 6.5,
+    "estimatedSupply": 6,
+    "recommendationPriority": 8,
+    "active": true
+  },
+  {
+    "city": "Kolhapur",
+    "zone": "Jaysingpur",
+    "timeSlot": "evening",
+    "baseDemandScore": 6.0,
+    "estimatedSupply": null,
+    "recommendationPriority": 9,
+    "active": true
+  }
+]

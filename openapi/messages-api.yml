@@ -1,0 +1,168 @@
+openapi: "3.0.3"
+info:
+  title: Gigsarathi Messages API
+  description: Internal contract for inbound message forwarding from bot services to gigsarathi-core
+  version: "1.0.0"
+  contact:
+    name: Gigsarathi Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: http://gigsarathi-core:8080
+    description: Docker Compose internal network
+
+paths:
+  /api/v1/messages:
+    post:
+      summary: Forward an inbound message from a bot
+      description: |
+        Receives an inbound message from whatsapp-bot or telegram-bot and queues it
+        for processing. This endpoint must respond quickly (the bots ACK platforms
+        immediately and call this asynchronously).
+      operationId: forwardMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InboundMessageRequest"
+            examples:
+              whatsapp_text:
+                summary: WhatsApp text message
+                value:
+                  platform: whatsapp
+                  userId: "919876543210"
+                  messageType: text
+                  payload:
+                    text: "I need a gig near Rankala"
+              telegram_text:
+                summary: Telegram text message
+                value:
+                  platform: telegram
+                  userId: "123456789"
+                  messageType: text
+                  payload:
+                    text: "/start"
+              button_reply:
+                summary: WhatsApp button reply
+                value:
+                  platform: whatsapp
+                  userId: "919876543210"
+                  messageType: button_reply
+                  payload:
+                    buttonId: "zone_rankala"
+                    buttonLabel: "Rankala"
+      responses:
+        "200":
+          description: Message accepted and sent or queued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageAcceptedResponse"
+              examples:
+                sent:
+                  value:
+                    status: sent
+                    messageId: "msg_01J8XYZ"
+                queued:
+                  value:
+                    status: queued
+                    messageId: "msg_01J8XYZ"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: "platform must be one of: whatsapp, telegram"
+        "409":
+          description: Duplicate message (idempotency check)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DuplicateResponse"
+              example:
+                error: duplicate
+                messageId: "msg_01J8XYZ"
+
+components:
+  schemas:
+    InboundMessageRequest:
+      type: object
+      required:
+        - platform
+        - userId
+        - messageType
+        - payload
+      properties:
+        platform:
+          type: string
+          enum:
+            - whatsapp
+            - telegram
+          description: Source platform of the message
+        userId:
+          type: string
+          description: Platform-specific user identifier (phone number for WhatsApp, numeric ID for Telegram)
+          example: "919876543210"
+        messageType:
+          type: string
+          enum:
+            - text
+            - button_reply
+            - start
+            - stop
+          description: Type of message received
+        payload:
+          type: object
+          description: Message content — shape varies by messageType
+          properties:
+            text:
+              type: string
+              description: Present for text and start/stop messages
+            buttonId:
+              type: string
+              description: Present for button_reply messages
+            buttonLabel:
+              type: string
+              description: Present for button_reply messages
+          additionalProperties: true
+
+    MessageAcceptedResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - sent
+            - queued
+        messageId:
+          type: string
+          description: Assigned message identifier (may be absent for queued messages)
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error description
+
+    DuplicateResponse:
+      type: object
+      required:
+        - error
+        - messageId
+      properties:
+        error:
+          type: string
+          enum:
+            - duplicate
+        messageId:
+          type: string
+          description: ID of the already-processed message

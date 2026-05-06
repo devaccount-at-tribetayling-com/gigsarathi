@@ -1,0 +1,90 @@
+services:
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  gigsarathi-core:
+    build:
+      context: ./gigsarathi-core
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/gigsarathi
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  whatsapp-bot:
+    build:
+      context: ./whatsapp-bot
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    env_file:
+      - .env
+    environment:
+      JAVA_API_URL: http://gigsarathi-core:8080
+      PORT: 3001
+    depends_on:
+      - gigsarathi-core
+
+  telegram-bot:
+    build:
+      context: ./telegram-bot
+      dockerfile: Dockerfile
+    ports:
+      - "3002:3002"
+    env_file:
+      - .env
+    environment:
+      JAVA_API_URL: http://gigsarathi-core:8080
+      PORT: 3002
+    depends_on:
+      - gigsarathi-core
+
+  telegram-webhook-init:
+    image: alpine/curl
+    command: ["/bin/sh", "/scripts/set-telegram-webhook.sh"]
+    volumes:
+      - ./scripts:/scripts
+    env_file:
+      - .env
+    depends_on:
+      - telegram-bot
+    restart: on-failure
+
+volumes:
+  mongo-data:

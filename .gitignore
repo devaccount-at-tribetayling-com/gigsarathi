@@ -1,0 +1,53 @@
+# Maven / Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.vscode/
+*.swp
+*.swo
+
+# Node.js
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# OMC — runtime logs are CI artifacts, not committed
+.omc/logs/codex-reviews/*.log
+# keep the directory tracked
+!.omc/logs/codex-reviews/.gitkeep
+
+# OMC ephemeral state (checkpoints, session replays, agent prompts, runtime memory)
+**/.omc/state/
+**/.omc/notepad.md
+**/.omc/project-memory.json
+
+# OMX runtime state and session logs (oh-my-claudecode runtime)
+**/.omx/

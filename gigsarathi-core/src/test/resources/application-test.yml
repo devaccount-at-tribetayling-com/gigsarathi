@@ -1,0 +1,18 @@
+spring:
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/gigsarathi-test
+  redis:
+    host: localhost
+    port: 6379
+
+gigsarathi:
+  whatsapp:
+    api-url: https://graph.facebook.com/v19.0
+    phone-number-id: test-phone-id
+    access-token: test-access-token
+  telegram:
+    bot-token: test-bot-token
+    bot-username: test-bot
+  admin:
+    api-key: test-admin-key
