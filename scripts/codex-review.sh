@@ -23,15 +23,15 @@ if [[ "${4:-}" == "--extra-context" ]]; then
   EXTRA_CONTEXT="${5:-}"
 fi
 
-# Detect available CLI — prefer claude, fall back to codex.
-if command -v claude >/dev/null 2>&1; then
-  AI_CLI=claude
-elif command -v codex >/dev/null 2>&1; then
+# Detect available CLI — prefer codex, fall back to claude.
+if command -v codex >/dev/null 2>&1; then
   AI_CLI=codex
+elif command -v claude >/dev/null 2>&1; then
+  AI_CLI=claude
 else
-  echo "ERROR: neither 'claude' nor 'codex' CLI found on PATH." >&2
-  echo "  Install Claude Code: https://claude.ai/code" >&2
+  echo "ERROR: neither 'codex' nor 'claude' CLI found on PATH." >&2
   echo "  Install Codex:       npm install -g @openai/codex" >&2
+  echo "  Install Claude Code: https://claude.ai/code" >&2
   exit 2
 fi
 
