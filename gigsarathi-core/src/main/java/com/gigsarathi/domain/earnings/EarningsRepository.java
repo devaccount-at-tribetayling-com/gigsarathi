@@ -18,4 +18,8 @@ public interface EarningsRepository extends MongoRepository<EarningsRecord, Stri
     long countByZoneAndSubmittedAtAfter(String zone, Instant after);
 
     long countByUserIdAndPlatform(String userId, String platform);
+
+    long countByUserIdAndPlatformAndSubmittedAtAfter(String userId, String platform, Instant after);
+
+    List<EarningsRecord> findBySubmittedAtBetween(Instant from, Instant to);
 }

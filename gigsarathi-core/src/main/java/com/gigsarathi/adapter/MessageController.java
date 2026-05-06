@@ -3,6 +3,7 @@ package com.gigsarathi.adapter;
 import com.gigsarathi.domain.idempotency.IdempotencyRecord;
 import com.gigsarathi.domain.idempotency.IdempotencyRepository;
 import com.gigsarathi.flow.FlowEngine;
+import com.gigsarathi.referral.ReferralService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
@@ -22,10 +23,14 @@ public class MessageController {
 
     private final IdempotencyRepository idempotencyRepository;
     private final FlowEngine flowEngine;
+    private final ReferralService referralService;
 
-    public MessageController(IdempotencyRepository idempotencyRepository, FlowEngine flowEngine) {
+    public MessageController(IdempotencyRepository idempotencyRepository,
+                             FlowEngine flowEngine,
+                             ReferralService referralService) {
         this.idempotencyRepository = idempotencyRepository;
         this.flowEngine = flowEngine;
+        this.referralService = referralService;
     }
 
     @PostMapping("/messages")
@@ -52,6 +57,12 @@ public class MessageController {
                     .build());
         } catch (DuplicateKeyException dup) {
             return ResponseEntity.ok(Map.of("status", "duplicate"));
+        }
+
+        try {
+            referralService.ensureReferralCode(userId, platform);
+        } catch (Exception ex) {
+            log.warn("Failed to ensure referral code for {}/{}: {}", platform, userId, ex.getMessage());
         }
 
         String text = extractText(platform, payload);
