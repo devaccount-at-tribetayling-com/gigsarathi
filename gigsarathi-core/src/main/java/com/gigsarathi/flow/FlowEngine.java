@@ -17,17 +17,23 @@ public class FlowEngine {
     private final UserRepository userRepository;
     private final OnboardingFlow onboardingFlow;
     private final DailyEarningsFlow dailyEarningsFlow;
+    private final LoanFlow loanFlow;
+    private final AccountLinkFlow accountLinkFlow;
     private final OptOutHandler optOutHandler;
 
     public FlowEngine(SessionService sessionService,
                       UserRepository userRepository,
                       OnboardingFlow onboardingFlow,
                       DailyEarningsFlow dailyEarningsFlow,
+                      LoanFlow loanFlow,
+                      AccountLinkFlow accountLinkFlow,
                       OptOutHandler optOutHandler) {
         this.sessionService = sessionService;
         this.userRepository = userRepository;
         this.onboardingFlow = onboardingFlow;
         this.dailyEarningsFlow = dailyEarningsFlow;
+        this.loanFlow = loanFlow;
+        this.accountLinkFlow = accountLinkFlow;
         this.optOutHandler = optOutHandler;
     }
 
@@ -43,7 +49,21 @@ public class FlowEngine {
             return;
         }
 
-        // 2. Get session
+        // 2. Account link commands — detected before session check
+        String trimmed = text == null ? "" : text.trim();
+        if (trimmed.equalsIgnoreCase("LINK")) {
+            accountLinkFlow.startAsPrimary(userId, platform);
+            touchUser(userId, platform);
+            return;
+        }
+        if (trimmed.toUpperCase().startsWith("LINK ")) {
+            String code = trimmed.substring(5).trim();
+            accountLinkFlow.linkAsSecondary(code, userId, platform);
+            touchUser(userId, platform);
+            return;
+        }
+
+        // 3. Get session
         Optional<SessionState> sessionOpt = sessionService.getSession(platform, userId);
 
         if (sessionOpt.isPresent()) {
@@ -52,6 +72,8 @@ public class FlowEngine {
             switch (flow) {
                 case ONBOARDING -> onboardingFlow.handle(userId, platform, text, state);
                 case DAILY_EARNINGS -> dailyEarningsFlow.handle(userId, platform, text, state);
+                case LOAN -> loanFlow.handle(userId, platform, text, state);
+                case ACCOUNT_LINK -> accountLinkFlow.handle(userId, platform, text, state);
                 default -> {
                     sessionService.clearSession(platform, userId);
                     routeForNewUser(userId, platform);
@@ -61,7 +83,7 @@ public class FlowEngine {
             return;
         }
 
-        // 3. No session: check user existence
+        // 4. No session: check user existence
         Optional<User> existing = userRepository.findByPlatformAndUserId(platform, userId);
         if (existing.isEmpty() || !"COMPLETED".equals(existing.get().getOnboardingStatus())) {
             onboardingFlow.start(userId, platform);
