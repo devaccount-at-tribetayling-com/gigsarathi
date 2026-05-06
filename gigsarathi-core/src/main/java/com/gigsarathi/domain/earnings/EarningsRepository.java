@@ -12,4 +12,10 @@ public interface EarningsRepository extends MongoRepository<EarningsRecord, Stri
 
     List<EarningsRecord> findByUserIdAndPlatformOrderBySubmittedAtDesc(
             String userId, String platform);
+
+    List<EarningsRecord> findByZoneAndSubmittedAtAfter(String zone, Instant after);
+
+    long countByZoneAndSubmittedAtAfter(String zone, Instant after);
+
+    long countByUserIdAndPlatform(String userId, String platform);
 }
