@@ -33,6 +33,8 @@ public class SessionService {
             return Optional.of(objectMapper.readValue(json, SessionState.class));
         } catch (JsonProcessingException ex) {
             log.error("Failed to parse session JSON for {}: {}", key, ex.getMessage());
+            // Session deserialized with unrecognized fields after rollback — key deleted.
+            // Users affected within 24h TTL window must re-interact.
             redisTemplate.delete(key);
             return Optional.empty();
         }

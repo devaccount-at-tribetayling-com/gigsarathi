@@ -45,6 +45,10 @@ public class OptOutHandler {
             u.setLastActiveAt(Instant.now());
             userRepository.save(u);
         });
+        // STOP always clears the entire session regardless of flowType or previousFlow.
+        // This applies to all chained flows (TOMORROW_PLAN, REFERRAL, LOAN, ACCOUNT_LINK).
+        // START returns the user to the ACTIVE scheduler pool; it does NOT resume
+        // a previously interrupted chain.
         sessionService.clearSession(platform, userId);
         eventService.emit("opted_out", userId, platform, Map.of());
         messageSender.sendMessage(userId, platform,
