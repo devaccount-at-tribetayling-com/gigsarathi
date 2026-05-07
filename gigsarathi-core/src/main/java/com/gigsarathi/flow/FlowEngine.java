@@ -2,6 +2,7 @@ package com.gigsarathi.flow;
 
 import com.gigsarathi.domain.user.User;
 import com.gigsarathi.domain.user.UserRepository;
+import com.gigsarathi.referral.ReferralService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +21,7 @@ public class FlowEngine {
     private final LoanFlow loanFlow;
     private final AccountLinkFlow accountLinkFlow;
     private final OptOutHandler optOutHandler;
+    private final ReferralService referralService;
 
     public FlowEngine(SessionService sessionService,
                       UserRepository userRepository,
@@ -27,7 +29,8 @@ public class FlowEngine {
                       DailyEarningsFlow dailyEarningsFlow,
                       LoanFlow loanFlow,
                       AccountLinkFlow accountLinkFlow,
-                      OptOutHandler optOutHandler) {
+                      OptOutHandler optOutHandler
+                      ReferralService referralService) {
         this.sessionService = sessionService;
         this.userRepository = userRepository;
         this.onboardingFlow = onboardingFlow;
@@ -35,10 +38,17 @@ public class FlowEngine {
         this.loanFlow = loanFlow;
         this.accountLinkFlow = accountLinkFlow;
         this.optOutHandler = optOutHandler;
+        this.referralService = referralService;
     }
 
     public void handle(String userId, String platform, String text, String messageType,
                        Map<String, Object> payload) {
+        try {
+            referralService.ensureReferralCode(userId, platform);
+        } catch (Exception ex) {
+            log.warn("Failed to ensure referral code for {}/{}: {}", platform, userId, ex.getMessage());
+        }
+
         // 1. STOP / START opt-out commands
         if (optOutHandler.isStopCommand(text)) {
             optOutHandler.handleStop(userId, platform);
