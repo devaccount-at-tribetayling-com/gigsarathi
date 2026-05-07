@@ -29,7 +29,7 @@ public class FlowEngine {
                       DailyEarningsFlow dailyEarningsFlow,
                       LoanFlow loanFlow,
                       AccountLinkFlow accountLinkFlow,
-                      OptOutHandler optOutHandler
+                      OptOutHandler optOutHandler,
                       ReferralService referralService) {
         this.sessionService = sessionService;
         this.userRepository = userRepository;
