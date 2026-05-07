@@ -6,6 +6,10 @@ spring:
     host: localhost
     port: 6379
 
+app:
+  bootstrap:
+    enabled: false
+
 gigsarathi:
   whatsapp:
     api-url: https://graph.facebook.com/v19.0

@@ -17,6 +17,16 @@ management:
   endpoint:
     health:
       show-details: never
+  datadog:
+    metrics:
+      export:
+        api-key: ${DD_API_KEY:}
+        enabled: ${DD_METRICS_ENABLED:false}
+        step: 60s
+  metrics:
+    tags:
+      application: gigsarathi-core
+      env: ${DD_ENV:local}
 
 gigsarathi:
   whatsapp:
